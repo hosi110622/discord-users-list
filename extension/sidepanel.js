@@ -9,6 +9,7 @@ const cloudMessage = document.getElementById("cloud-message");
 const filters = Object.fromEntries(columns.map((column) => [column, ""]));
 let registeredUsers = [];
 let profileSaveVersion = 0;
+let showingAllData = false;
 
 profileInput.addEventListener("change", () => {
   void saveChromeProfile(profileInput.value);
@@ -25,14 +26,28 @@ document.getElementById("save-api-settings").addEventListener("click", async () 
     if (!response?.ok) {
       throw new Error(response?.error || "Could not connect to the database.");
     }
-    cloudMessage.textContent = "Connection successful. Loading records...";
+    cloudMessage.textContent = "Connection successful.";
     apiTokenInput.value = "";
-    await refresh();
   } catch (error) {
     cloudMessage.textContent = error instanceof Error
       ? error.message
       : "Could not connect to the database.";
   }
+});
+
+document.getElementById("view-all-data").addEventListener("click", () => {
+  void loadAllData();
+});
+
+chrome.runtime.onMessage.addListener((incoming) => {
+  if (incoming?.type !== "users:registered" || !incoming.record) {
+    return;
+  }
+  showingAllData = false;
+  clearFilters();
+  registeredUsers = [incoming.record];
+  render();
+  message.textContent = "Showing the newly registered user.";
 });
 
 document.querySelectorAll("[data-filter]").forEach((input) => {
@@ -42,11 +57,8 @@ document.querySelectorAll("[data-filter]").forEach((input) => {
   });
 });
 
-refresh();
 loadChromeProfile();
 loadCloudSettings();
-window.addEventListener("focus", () => void refresh());
-window.setInterval(() => void refresh(), 60000);
 
 async function loadCloudSettings() {
   try {
@@ -110,19 +122,35 @@ async function saveChromeProfile(chromeProfile) {
   }
 }
 
-async function refresh() {
+async function loadAllData() {
+  const viewAllButton = document.getElementById("view-all-data");
+  viewAllButton.disabled = true;
+  message.textContent = "Loading all records...";
   try {
     const response = await chrome.runtime.sendMessage({ type: "users:list" });
     if (!response?.ok) {
       throw new Error(response?.error || "Could not load registered users.");
     }
     registeredUsers = response.records;
+    showingAllData = true;
     render();
+    message.textContent = `Showing all ${registeredUsers.length} registered user(s).`;
   } catch (error) {
     message.textContent = error instanceof Error
       ? error.message
       : "Could not load registered users.";
+  } finally {
+    viewAllButton.disabled = false;
   }
+}
+
+function clearFilters() {
+  Object.keys(filters).forEach((column) => {
+    filters[column] = "";
+  });
+  document.querySelectorAll("[data-filter]").forEach((input) => {
+    input.value = "";
+  });
 }
 
 function render() {
@@ -145,9 +173,11 @@ function render() {
     const cell = document.createElement("td");
     cell.className = "empty";
     cell.colSpan = 9;
-    cell.textContent = registeredUsers.length === 0
-      ? "No registered users yet."
-      : "No matching users.";
+    cell.textContent = !showingAllData && registeredUsers.length === 0
+      ? "Click View All Data to load registered users."
+      : registeredUsers.length === 0
+        ? "No registered users yet."
+        : "No matching users.";
     row.append(cell);
     recordsBody.append(row);
     return;
@@ -261,7 +291,13 @@ async function updateRecord(otherUser, field, value, control) {
     if (!response?.ok) {
       throw new Error(response?.error || "Could not update this user.");
     }
-    await refresh();
+    const record = registeredUsers.find(
+      (item) => item.otherUser.toLowerCase() === otherUser.toLowerCase()
+    );
+    if (record) {
+      record[field] = value;
+      render();
+    }
   } catch (error) {
     message.textContent = error instanceof Error
       ? error.message
@@ -281,7 +317,10 @@ async function removeRecord(otherUser, button) {
     if (!response?.ok) {
       throw new Error(response?.error || "Could not delete this user.");
     }
-    await refresh();
+    registeredUsers = registeredUsers.filter(
+      (record) => record.otherUser.toLowerCase() !== otherUser.toLowerCase()
+    );
+    render();
   } catch (error) {
     message.textContent = error instanceof Error
       ? error.message

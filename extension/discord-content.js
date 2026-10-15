@@ -119,6 +119,22 @@
     dragSelection = "";
   }
 
+  async function sendExtensionMessage(message) {
+    const runtime = globalThis.chrome?.runtime;
+    if (!runtime?.id || typeof runtime.sendMessage !== "function") {
+      throw new Error("The extension was updated. Reload the Discord tab, then try again.");
+    }
+
+    try {
+      return await runtime.sendMessage(message);
+    } catch (error) {
+      if (globalThis.chrome?.runtime?.id !== runtime.id) {
+        throw new Error("The extension was updated. Reload the Discord tab, then try again.");
+      }
+      throw error;
+    }
+  }
+
   function getCurrentServerDetails() {
     const selected = document.querySelector(
       '[role="treeitem"][aria-selected="true"][data-list-item-id^="guildsnav"]'
@@ -187,7 +203,7 @@
   async function showSavePrompt(otherUser, server, myUser, clientX, clientY) {
     let chromeProfile = "";
     try {
-      const response = await chrome.runtime.sendMessage({ type: "profile:get" });
+      const response = await sendExtensionMessage({ type: "profile:get" });
       if (!response?.ok) {
         throw new Error(response?.error || "Could not load the Chrome profile name.");
       }
@@ -261,7 +277,7 @@
           throw new Error("Enter a Chrome profile name and select a server before saving.");
         }
 
-        const response = await chrome.runtime.sendMessage({
+        const response = await sendExtensionMessage({
           type: "users:register",
           otherUser,
           myUser,
@@ -271,6 +287,14 @@
 
         if (!response?.ok) {
           throw new Error(response?.error || "Could not save this user.");
+        }
+
+        const panelUpdate = await sendExtensionMessage({
+          type: "users:registered",
+          record: response.record
+        });
+        if (!panelUpdate?.ok) {
+          throw new Error(panelUpdate?.error || "User saved, but the table could not be updated.");
         }
 
         removePrompt();

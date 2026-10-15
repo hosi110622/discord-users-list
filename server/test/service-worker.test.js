@@ -7,6 +7,7 @@ const vm = require("node:vm");
 test("routes cloud record operations through the configured API", async () => {
   const localStore = {};
   const remoteRecords = new Map();
+  let listRequests = 0;
   let messageListener;
   const local = {
     async get(keys) {
@@ -33,17 +34,20 @@ test("routes cloud record operations through the configured API", async () => {
     let body = {};
     const input = options.body ? JSON.parse(options.body) : {};
 
-    if (options.method === "GET" && path === "/api/users") {
+    if (options.method === "GET" && path === "/api/status") {
+      body = { ok: true };
+    } else if (options.method === "GET" && path === "/api/users") {
+      listRequests += 1;
       body = { records: Array.from(remoteRecords.values()) };
     } else if (options.method === "POST" && path === "/api/users/import") {
       body = { ok: true, imported: 0 };
     } else if (options.method === "POST" && path === "/api/users") {
       const key = input.otherUser.trim().toLowerCase();
       if (remoteRecords.has(key)) {
-        body = { ok: true, duplicate: true };
+        body = { ok: true, duplicate: true, record: remoteRecords.get(key) };
       } else {
         remoteRecords.set(key, input);
-        body = { ok: true, duplicate: false };
+        body = { ok: true, duplicate: false, record: input };
       }
     } else if (options.method === "PATCH" && path === "/api/users") {
       const record = remoteRecords.get(input.otherUser.trim().toLowerCase());
@@ -87,6 +91,7 @@ test("routes cloud record operations through the configured API", async () => {
     apiToken: "test-token"
   });
   assert.equal(connection.ok, true);
+  assert.equal(listRequests, 0, "connecting should not fetch all records");
 
   const created = await send({
     type: "users:register",
@@ -96,6 +101,8 @@ test("routes cloud record operations through the configured API", async () => {
     otherUser: "Other"
   });
   assert.equal(created.duplicate, false);
+  assert.equal(created.record.otherUser, "Other");
+  assert.equal(listRequests, 0, "registration should not fetch all records");
 
   const duplicate = await send({
     type: "users:register",
@@ -115,4 +122,5 @@ test("routes cloud record operations through the configured API", async () => {
   assert.equal((await send({ type: "users:list" })).records[0].replay, 4);
   assert.equal((await send({ type: "users:delete", otherUser: "Other" })).ok, true);
   assert.equal((await send({ type: "users:list" })).records.length, 0);
+  assert.equal(listRequests, 2, "only explicit list requests fetch all records");
 });

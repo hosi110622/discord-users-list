@@ -69,6 +69,11 @@ async function handleRequest(request, response) {
     return;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/status") {
+    sendJson(response, 200, { ok: true });
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/users") {
     const records = await collection.find({}, { projection: { _id: 0, otherUserKey: 0 } })
       .sort({ date: -1, otherUser: 1 })
@@ -151,10 +156,18 @@ async function createUser(request, response) {
       ...record,
       otherUserKey: normalizeUsername(record.otherUser)
     });
-    sendJson(response, 201, { ok: true, duplicate: false });
+    sendJson(response, 201, { ok: true, duplicate: false, record });
   } catch (error) {
     if (error.code === 11000) {
-      sendJson(response, 200, { ok: true, duplicate: true });
+      const existing = await collection.findOne(
+        { otherUserKey: normalizeUsername(record.otherUser) },
+        { projection: { _id: 0, otherUserKey: 0 } }
+      );
+      sendJson(response, 200, {
+        ok: true,
+        duplicate: true,
+        record: existing ? normalizeRecord(existing) : record
+      });
       return;
     }
     throw error;

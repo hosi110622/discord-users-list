@@ -62,6 +62,10 @@ async function handleMessage(message) {
     return { ok: true, records: await listUsers() };
   }
 
+  if (message.type === "users:registered") {
+    return { ok: true };
+  }
+
   if (message.type === "users:register") {
     return serializeMutation(() => registerUser(message));
   }
@@ -105,7 +109,7 @@ async function setCloudSettings(message) {
   await chrome.storage.local.set({ apiUrl, apiToken: token });
 
   try {
-    await requestApi("GET", "/api/users");
+    await requestApi("GET", "/api/status");
     return { ok: true };
   } catch (error) {
     if (current.apiUrl !== apiUrl || current.apiToken !== token) {
@@ -238,8 +242,13 @@ async function registerUser(message) {
     return { ok: false, error: "Chrome profile, other user, and server are required." };
   }
 
+  await importLegacyRecordsIfNeeded();
   const response = await requestApi("POST", "/api/users", record);
-  return { ok: true, duplicate: response.duplicate === true };
+  return {
+    ok: true,
+    duplicate: response.duplicate === true,
+    record: normalizeRecord(response.record || record)
+  };
 }
 
 async function updateUser(message) {
