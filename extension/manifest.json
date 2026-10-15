@@ -10,7 +10,7 @@
   ],
   "host_permissions": [
     "https://*.discord.com/*",
-    "https://*.onrender.com/*"
+    "https://discord-users-list.onrender.com/*"
   ],
   "action": {
     "default_title": "Open registered Discord users"

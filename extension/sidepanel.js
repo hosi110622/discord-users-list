@@ -3,9 +3,6 @@ const recordsBody = document.getElementById("records");
 const message = document.getElementById("message");
 const profileInput = document.getElementById("chrome-profile");
 const profileMessage = document.getElementById("profile-message");
-const apiUrlInput = document.getElementById("api-url");
-const apiTokenInput = document.getElementById("api-token");
-const cloudMessage = document.getElementById("cloud-message");
 const filters = Object.fromEntries(columns.map((column) => [column, ""]));
 let registeredUsers = [];
 let profileSaveVersion = 0;
@@ -13,26 +10,6 @@ let showingAllData = false;
 
 profileInput.addEventListener("change", () => {
   void saveChromeProfile(profileInput.value);
-});
-
-document.getElementById("save-api-settings").addEventListener("click", async () => {
-  cloudMessage.textContent = "Connecting...";
-  try {
-    const response = await chrome.runtime.sendMessage({
-      type: "cloud:set-settings",
-      apiUrl: apiUrlInput.value,
-      apiToken: apiTokenInput.value
-    });
-    if (!response?.ok) {
-      throw new Error(response?.error || "Could not connect to the database.");
-    }
-    cloudMessage.textContent = "Connection successful.";
-    apiTokenInput.value = "";
-  } catch (error) {
-    cloudMessage.textContent = error instanceof Error
-      ? error.message
-      : "Could not connect to the database.";
-  }
 });
 
 document.getElementById("view-all-data").addEventListener("click", () => {
@@ -58,21 +35,6 @@ document.querySelectorAll("[data-filter]").forEach((input) => {
 });
 
 loadChromeProfile();
-loadCloudSettings();
-
-async function loadCloudSettings() {
-  try {
-    const response = await chrome.runtime.sendMessage({ type: "cloud:get-settings" });
-    if (!response?.ok) {
-      throw new Error(response?.error || "Could not load cloud settings.");
-    }
-    apiUrlInput.value = response.apiUrl;
-  } catch (error) {
-    cloudMessage.textContent = error instanceof Error
-      ? error.message
-      : "Could not load cloud settings.";
-  }
-}
 
 async function loadChromeProfile() {
   try {

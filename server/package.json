@@ -2,7 +2,7 @@
   "name": "discord-user-register-api",
   "version": "1.0.0",
   "private": true,
-  "description": "Private API for the Discord User Register Chrome extension",
+  "description": "Public API for the Discord User Register Chrome extension",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

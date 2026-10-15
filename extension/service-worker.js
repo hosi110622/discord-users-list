@@ -1,8 +1,16 @@
 const EDITABLE_FIELDS = new Set(["isAccept", "replay", "status"]);
+const API_URL = "https://discord-users-list.onrender.com";
 const LEGACY_LOCAL_KEY = "registeredUsers";
 const LEGACY_SYNC_PREFIX = "user:";
 const API_MIGRATION_KEY = "legacyRecordsImportedToMongo";
 let mutationQueue = Promise.resolve();
+
+chrome.storage.local.remove("apiToken").catch((error) => {
+  console.error("Failed to remove the retired API token setting:", error);
+});
+chrome.storage.local.remove("apiUrl").catch((error) => {
+  console.error("Failed to remove the retired API URL setting:", error);
+});
 
 chrome.action.onClicked.addListener(async (tab) => {
   if (!Number.isInteger(tab.windowId) || tab.windowId < 0) {
@@ -36,15 +44,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 async function handleMessage(message) {
-  if (message.type === "cloud:get-settings") {
-    const settings = await getCloudSettings();
-    return { ok: true, apiUrl: settings.apiUrl };
-  }
-
-  if (message.type === "cloud:set-settings") {
-    return serializeMutation(() => setCloudSettings(message));
-  }
-
   if (message.type === "profile:get") {
     const stored = await chrome.storage.local.get("chromeProfile");
     return { ok: true, chromeProfile: stored.chromeProfile || "" };
@@ -87,75 +86,10 @@ function serializeMutation(operation) {
   return result;
 }
 
-async function getCloudSettings() {
-  const stored = await chrome.storage.local.get(["apiUrl", "apiToken"]);
-  return {
-    apiUrl: normalizeApiUrl(stored.apiUrl || ""),
-    apiToken: typeof stored.apiToken === "string" ? stored.apiToken : ""
-  };
-}
-
-async function setCloudSettings(message) {
-  const apiUrl = normalizeApiUrl(
-    typeof message.apiUrl === "string" ? message.apiUrl.trim() : ""
-  );
-  const current = await getCloudSettings();
-  const suppliedToken = typeof message.apiToken === "string" ? message.apiToken.trim() : "";
-  const token = suppliedToken || (apiUrl === current.apiUrl ? current.apiToken : "");
-  if (!apiUrl || !token) {
-    return { ok: false, error: "Enter a Render API URL and its API access token." };
-  }
-
-  await chrome.storage.local.set({ apiUrl, apiToken: token });
-
-  try {
-    await requestApi("GET", "/api/status");
-    return { ok: true };
-  } catch (error) {
-    if (current.apiUrl !== apiUrl || current.apiToken !== token) {
-      await chrome.storage.local.set({
-        apiUrl: current.apiUrl,
-        apiToken: current.apiToken
-      });
-    }
-    throw error;
-  }
-}
-
-function normalizeApiUrl(value) {
-  if (!value) {
-    return "";
-  }
-  let parsed;
-  try {
-    parsed = new URL(value);
-  } catch {
-    return "";
-  }
-  if (
-    parsed.protocol !== "https:" ||
-    parsed.username ||
-    parsed.password ||
-    !parsed.hostname.endsWith(".onrender.com") ||
-    parsed.pathname !== "/" ||
-    parsed.search ||
-    parsed.hash
-  ) {
-    return "";
-  }
-  return parsed.href.replace(/\/+$/, "");
-}
-
 async function requestApi(method, path, body) {
-  const { apiUrl, apiToken } = await getCloudSettings();
-  if (!apiUrl || !apiToken) {
-    throw new Error("Configure the Render API URL and token in Cloud database connection.");
-  }
-
-  const response = await fetch(`${apiUrl}${path}`, {
+  const response = await fetch(`${API_URL}${path}`, {
     method,
     headers: {
-      "Authorization": `Bearer ${apiToken}`,
       ...(body === undefined ? {} : { "Content-Type": "application/json" })
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) })
@@ -183,9 +117,8 @@ async function listUsers() {
 }
 
 async function importLegacyRecordsIfNeeded() {
-  const { apiUrl } = await getCloudSettings();
   const state = await chrome.storage.local.get(API_MIGRATION_KEY);
-  if (state[API_MIGRATION_KEY] === apiUrl) {
+  if (state[API_MIGRATION_KEY] === API_URL) {
     return;
   }
 
@@ -210,7 +143,7 @@ async function importLegacyRecordsIfNeeded() {
       });
     }
   }
-  await chrome.storage.local.set({ [API_MIGRATION_KEY]: apiUrl });
+  await chrome.storage.local.set({ [API_MIGRATION_KEY]: API_URL });
 }
 
 function normalizeRecord(record) {

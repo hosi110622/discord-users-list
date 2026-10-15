@@ -5,9 +5,10 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 test("routes cloud record operations through the configured API", async () => {
-  const localStore = {};
+  const localStore = { apiToken: "legacy-token" };
   const remoteRecords = new Map();
   let listRequests = 0;
+  let authorizationHeadersSent = false;
   let messageListener;
   const local = {
     async get(keys) {
@@ -17,6 +18,11 @@ test("routes cloud record operations through the configured API", async () => {
     },
     async set(values) {
       Object.assign(localStore, values);
+    },
+    async remove(keys) {
+      for (const key of Array.isArray(keys) ? keys : [keys]) {
+        delete localStore[key];
+      }
     }
   };
   const chrome = {
@@ -29,14 +35,14 @@ test("routes cloud record operations through the configured API", async () => {
   };
 
   const fetch = async (url, options = {}) => {
+    authorizationHeadersSent ||= Boolean(options.headers?.Authorization);
+    assert.equal(new URL(url).origin, "https://discord-users-list.onrender.com");
     const path = new URL(url).pathname;
     let status = 200;
     let body = {};
     const input = options.body ? JSON.parse(options.body) : {};
 
-    if (options.method === "GET" && path === "/api/status") {
-      body = { ok: true };
-    } else if (options.method === "GET" && path === "/api/users") {
+    if (options.method === "GET" && path === "/api/users") {
       listRequests += 1;
       body = { records: Array.from(remoteRecords.values()) };
     } else if (options.method === "POST" && path === "/api/users/import") {
@@ -85,12 +91,9 @@ test("routes cloud record operations through the configured API", async () => {
     messageListener(message, {}, resolve);
   });
 
-  const connection = await send({
-    type: "cloud:set-settings",
-    apiUrl: "https://example.onrender.com",
-    apiToken: "test-token"
-  });
-  assert.equal(connection.ok, true);
+  assert.equal(localStore.apiToken, undefined, "retired token setting should be removed");
+  assert.equal(localStore.apiUrl, undefined, "retired editable API URL should be removed");
+  assert.equal(authorizationHeadersSent, false, "API requests should not send an authorization token");
   assert.equal(listRequests, 0, "connecting should not fetch all records");
 
   const created = await send({

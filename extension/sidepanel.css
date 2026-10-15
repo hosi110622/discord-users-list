@@ -42,42 +42,6 @@ h1 {
   margin: 4px 0 0;
 }
 
-.cloud-settings {
-  border: 1px solid #3f4147;
-  border-radius: 6px;
-  margin-top: 12px;
-  padding: 8px;
-}
-
-.cloud-settings summary {
-  color: #c9cdfb;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.cloud-settings label {
-  color: #b5bac1;
-  display: block;
-  font-size: 12px;
-  margin-top: 10px;
-}
-
-.cloud-settings input {
-  margin-top: 4px;
-  width: 100%;
-}
-
-#save-api-settings {
-  margin-top: 10px;
-  width: 100%;
-}
-
-#cloud-message {
-  color: #b5bac1;
-  min-height: 1em;
-  margin: 6px 0 0;
-}
-
 #message {
   color: #b5bac1;
   min-height: 1em;

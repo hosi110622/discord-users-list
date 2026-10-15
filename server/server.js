@@ -1,9 +1,7 @@
 const http = require("node:http");
-const { createHash, timingSafeEqual } = require("node:crypto");
 const { MongoClient } = require("mongodb");
 
 const PORT = Number(process.env.PORT || 3000);
-const API_TOKEN = process.env.API_TOKEN || "";
 const DATABASE_NAME = process.env.MONGODB_DATABASE || "discord_user_register";
 const MAX_BODY_BYTES = 256 * 1024;
 const EDITABLE_FIELDS = new Set(["isAccept", "replay", "status"]);
@@ -12,9 +10,6 @@ let collection;
 async function start() {
   if (!process.env.MONGODB_URI) {
     throw new Error("MONGODB_URI must be configured.");
-  }
-  if (API_TOKEN.length < 32) {
-    throw new Error("API_TOKEN must be at least 32 characters long.");
   }
 
   const client = new MongoClient(process.env.MONGODB_URI, {
@@ -61,11 +56,6 @@ async function handleRequest(request, response) {
   const url = new URL(request.url, "http://localhost");
   if (request.method === "GET" && url.pathname === "/health") {
     sendJson(response, 200, { ok: true });
-    return;
-  }
-
-  if (!isAuthorized(request)) {
-    sendJson(response, 401, { error: "Invalid API token." });
     return;
   }
 
@@ -129,19 +119,9 @@ function validateOrigin(request, response) {
 
   response.setHeader("Access-Control-Allow-Origin", origin);
   response.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
-  response.setHeader("Access-Control-Allow-Headers", "Authorization,Content-Type");
+  response.setHeader("Access-Control-Allow-Headers", "Content-Type");
   response.setHeader("Access-Control-Max-Age", "600");
   return true;
-}
-
-function isAuthorized(request) {
-  const provided = request.headers.authorization || "";
-  if (!provided.startsWith("Bearer ")) {
-    return false;
-  }
-  const providedHash = createHash("sha256").update(provided.slice(7)).digest();
-  const expectedHash = createHash("sha256").update(API_TOKEN).digest();
-  return timingSafeEqual(providedHash, expectedHash);
 }
 
 async function createUser(request, response) {
