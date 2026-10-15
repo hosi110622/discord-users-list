@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Registered Discord users</title>
+    <link rel="stylesheet" href="sidepanel.css">
+  </head>
+  <body>
+    <header>
+      <h1>Registered users</h1>
+      <label class="profile-field" for="chrome-profile">
+        Chrome profile name
+        <select id="chrome-profile">
+          <option value="">Select a Chrome profile</option>
+          <option value="yuma1">yuma1</option>
+          <option value="Lucas Almeida">Lucas Almeida</option>
+          <option value="Cristiano Gabriel Farias">Cristiano Gabriel Farias</option>
+          <option value="juliana costa">juliana costa</option>
+          <option value="diego gabriel costa">diego gabriel costa</option>
+          <option value="Felipe Rodrigues">Felipe Rodrigues</option>
+          <option value="Victor Hugo Cavalcante">Victor Hugo Cavalcante</option>
+          <option value="Wallace Ferreira Dias">Wallace Ferreira Dias</option>
+          <option value="Diego Carvalho">Diego Carvalho</option>
+          <option value="Pedro Barbosa">Pedro Barbosa</option>
+          <option value="Eduardo Henrique Silva">Eduardo Henrique Silva</option>
+          <option value="rafaeloliver">rafaeloliver</option>
+          <option value="Santiago Hernández">Santiago Hernández</option>
+          <option value="Rafael Almeida">Rafael Almeida</option>
+          <option value="Theo Martins Silva">Theo Martins Silva</option>
+          <option value="leandromelo001">leandromelo001</option>
+          <option value="matheuscosta02">matheuscosta02</option>
+          <option value="Rodrigo Henrique Oliveira">Rodrigo Henrique Oliveira</option>
+          <option value="Vicente Fernandes Lima">Vicente Fernandes Lima</option>
+        </select>
+      </label>
+      <p id="profile-message" role="status" aria-live="polite"></p>
+      <details class="cloud-settings">
+        <summary>Cloud database connection</summary>
+        <label for="api-url">Render API URL</label>
+        <input id="api-url" type="url" placeholder="https://your-service.onrender.com">
+        <label for="api-token">API access token</label>
+        <input id="api-token" type="password" autocomplete="off" placeholder="Enter token; leave blank to keep current">
+        <button id="save-api-settings" type="button">Connect</button>
+        <p id="cloud-message" role="status" aria-live="polite"></p>
+      </details>
+      <p id="message" role="status" aria-live="polite"></p>
+    </header>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Server</th>
+            <th>Chrome profile</th>
+            <th>My user</th>
+            <th>Other user</th>
+            <th>Accepted</th>
+            <th>Replay</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+          <tr class="filters">
+            <th><input data-filter="date" aria-label="Search date" placeholder="Search"></th>
+            <th><input data-filter="server" aria-label="Search server" placeholder="Search"></th>
+            <th><input data-filter="chromeProfile" aria-label="Search Chrome profile" placeholder="Search"></th>
+            <th><input data-filter="myUser" aria-label="Search my user" placeholder="Search"></th>
+            <th><input data-filter="otherUser" aria-label="Search other user" placeholder="Search"></th>
+            <th><input data-filter="isAccept" aria-label="Search accepted" placeholder="Search"></th>
+            <th><input data-filter="replay" aria-label="Search replay" placeholder="Search"></th>
+            <th><input data-filter="status" aria-label="Search status" placeholder="Search"></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="records"></tbody>
+      </table>
+    </div>
+    <script src="sidepanel.js"></script>
+  </body>
+</html>

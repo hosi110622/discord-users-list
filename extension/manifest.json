@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "minimum_chrome_version": "116",
+  "name": "Discord User Register",
+  "version": "1.0.0",
+  "description": "Save selected Discord usernames and manage registered users.",
+  "permissions": [
+    "storage",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://*.discord.com/*",
+    "https://*.onrender.com/*"
+  ],
+  "action": {
+    "default_title": "Open registered Discord users"
+  },
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.discord.com/*"
+      ],
+      "js": [
+        "discord-content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
